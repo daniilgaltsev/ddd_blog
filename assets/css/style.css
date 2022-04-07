@@ -361,9 +361,9 @@ details.description:not([open]) summary::after { content: attr(data-close); }
 
 .notebook-badge-image { border: 0 !important; }
 
-.footnotes { font-size: 12px !important; }
+.footnotes { font-size: 20px !important; }
 
-.footnotes p, .footnotes li { font-size: 12px !important; }
+.footnotes p, .footnotes li { font-size: 20px !important; }
 
 .social-media-list .svg-icon, .pagination .svg-icon { width: 25px !important; height: 23px !important; }
 
