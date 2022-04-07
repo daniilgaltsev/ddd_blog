@@ -53,6 +53,7 @@ class SimpleNN:
         return self.linear2
 
     def backward(self, dlinear2):
+        # print(self.relu1.shape, self.w2.shape, self.b2.shape, dlinear2.shape)
         drelu1, self.dw2, self.db2 = linear_backward(self.relu1, self.w2, self.b2, dlinear2)
         dlinear1 = relu_backward(self.linear1, drelu1)
         dinp, self.dw1, self.db1 = linear_backward(self.inp, self.w1, self.b1, dlinear1)
@@ -64,10 +65,10 @@ class SimpleNN:
         self.b2 -= self.db2 * lr
 
     def _print_mean_and_var(self, X):
-        y = model.forward(X)
+        y = self.forward(X)
         print_stats("input", X)
-        print_stats("layer1", model.relu1)
-        print_stats("layer2", model.linear2)
+        print_stats("layer1", self.relu1)
+        print_stats("layer2", self.linear2)
 
 
 def noop(x):
@@ -101,11 +102,11 @@ def print_stats(name, X):
     print(f"After {name}: mean={X.mean():.2f}, variance={X.var():.3f}")
 
 def print_final_loss(y_train, y_val, train_loss, val_loss):
-        avg_train = y_train.mean()
-        predict_avg_loss_train = mse(avg_train, y_train)
-        predict_avg_loss_val = mse(avg_train, y_val)
-        print(f"Train loss={train_loss:.4f}, val. loss={val_loss:.4f}")
-        print(f"Using avg. response: train loss={predict_avg_loss_train:.4f}, val. loss={predict_avg_loss_val:.4f}")
+    avg_train = y_train.mean()
+    predict_avg_loss_train = mse(avg_train, y_train)
+    predict_avg_loss_val = mse(avg_train, y_val)
+    print(f"Train loss={train_loss:.4f}, val. loss={val_loss:.4f}")
+    print(f"Using avg. response: train loss={predict_avg_loss_train:.4f}, val. loss={predict_avg_loss_val:.4f}")
 
 def plot_losses(train_losses, val_losses):
     plt.figure(figsize=(16, 9))
@@ -116,17 +117,17 @@ def plot_losses(train_losses, val_losses):
     if save_plots: plt.savefig(f"loss_for_{name}")
     if show_plots: plt.show()
 
-def plot_data(X, X_val, y_val, X_train, y_train, true_data_func, model):
-        X = np.sort(X, axis=0)
-        plt.figure(figsize=(16, 9))
-        plt.scatter(X_val, y_val, color="blue", label="Val. data")
-        plt.scatter(X_train, y_train, color="black", label="Train data")
-        plt.plot(X, true_data_func(X), color="black", label="True function")
-        plt.scatter(X_val, model.forward(X_val), color="orange", label="Predicted for val. data")
-        plt.plot(X, model.forward(X), color="orange", label="Model function")
-        plt.legend()
-        if save_plots: plt.savefig(f"data_for_{name}")
-        if show_plots: plt.show()
+def plot_data(X, X_val, y_val, X_train, y_train, true_data_func, model, normalize_param):
+    X = np.sort(X, axis=0)
+    plt.figure(figsize=(16, 9))
+    plt.scatter(X_val, y_val, color="blue", label="Val. data")
+    plt.scatter(X_train, y_train, color="black", label="Train data")
+    plt.plot(X, true_data_func(X * normalize_param[1] + normalize_param[0]), color="black", label="True function")
+    plt.scatter(X_val, model.forward(X_val), color="orange", label="Predicted for val. data")
+    plt.plot(X, model.forward(X), color="orange", label="Model function")
+    plt.legend()
+    if save_plots: plt.savefig(f"data_for_{name}")
+    if show_plots: plt.show()
 
 
 data_types = [("linear", get_linear_data, linear), ("square", get_square_data, square), ("wave", get_wave_data, wave)]
@@ -135,15 +136,15 @@ np.random.seed(0)
 # Config
 show_plots = False
 save_plots = True
-print_mean_and_var = False
-normalize_input = False # TODO: breaks plotting the true function
+print_mean_and_var = True
+normalize_input = True
 weight_init = WeightInit.simple
 n = 200
 inp_dim = 1
 out_dim = 1
 train_split = 0.8
 hidden_dim = 20
-lr = 0.5
+lr = 0.05
 updates = 10000
 
 train_size = int(n * train_split)
@@ -154,7 +155,8 @@ for (name, get_data_func, data_func) in data_types:
     print(f"\n_______________\nFitting {name} data\n_______________")
     X, y, true_w, true_b = get_data_func(n, inp_dim, out_dim)
     true_data_func = lambda X: data_func(X, true_w, true_b)
-    if normalize_input: X = (X - X.mean()) / X.std()
+    normalize_param = (0.0, 1.0)
+    if normalize_input: normalize_param = (X.mean(), X.std()); X = (X - X.mean()) / X.std()
     
     X_train, y_train = X[:train_size], y[:train_size]
     X_val, y_val = X[train_size:], y[train_size:]
@@ -167,7 +169,8 @@ for (name, get_data_func, data_func) in data_types:
         train_predicted = model.forward(X_train)
         train_loss = mse(train_predicted, y_train)
         
-        model.backward(train_loss)
+        # print(train_loss.shape, train_loss)
+        model.backward(mse_backward(train_predicted, y_train))
         model.sgd_update(lr * (1 - i / updates))
 
         val_predicted = model.forward(X_val)
@@ -183,4 +186,4 @@ for (name, get_data_func, data_func) in data_types:
     plot_losses(train_losses, val_losses)
 
     if inp_dim == 1 and out_dim == 1:
-        plot_data(X, X_val, y_val, X_train, y_train, true_data_func, model)
+        plot_data(X, X_val, y_val, X_train, y_train, true_data_func, model, normalize_param)
