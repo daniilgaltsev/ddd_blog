@@ -96,7 +96,7 @@ class TestCNN(nn.Module):
 
 def train(
     model, dataloader_train, dataloader_val, accelerator, optimizer, lr_scheduler, 
-    train_losses, val_losses, learning_rates
+    train_losses, val_losses, learning_rates, steps_per_epoch
     ):
     device = accelerator.device
     for epoch in range(1, EPOCHS + 1):
@@ -234,7 +234,7 @@ if __name__ == "__main__":
     if not FIND_LR:
         train(
             model, dataloader_train, dataloader_val, accelerator, optimizer, lr_scheduler, 
-            train_losses, val_losses, learning_rates
+            train_losses, val_losses, learning_rates, steps_per_epoch
         )
 
         if PLOT_LR:
